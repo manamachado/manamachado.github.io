@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Convert JSON to JavaScript</title>
+</head>
+
+<body>
+  <header>
+    <h1>Convert JSON to JavaScript object</h1>
+  </header>
+  <main>
+    <div style="float: left; width: 48%;">
+      <h2>Paste your JSON object here</h2>
+      <div id="json-editor">{
+  "sender": {
+    "id": "USER_ID"
+  },
+  "recipient": {
+    "id": "PAGE_ID"
+  },
+  "timestamp": 1458692752478,
+  "message": {
+    "mid": "mid.1457764197618:41d102a3e1ae206a38",
+    "seq": 73,
+    "text": "hello, world!",
+    "quick_reply": {
+      "payload": "DEVELOPER_DEFINED_PAYLOAD"
+    }
+  }
+}</div>
+      <div style="display: flex; flex-direction: row; justify-content: space-between; padding: 3px; margin: 5px 0;">
+        <label style="display: flex; align-items: center; ">
+          <input id="addTrailingComma" onclick="handleTrailingComma(this)" type="checkbox" name="trailing" value="value">
+          <span>add trailing comma</span>
+        </label>
+      </div>
+    </div>
+    <div style="float: left; width: 48%;">
+      <h2>JS version appears here</h2>
+      <div id="js-editor"></div>
+      <div style="display: flex; flex-direction: row; justify-content: space-between; padding: 3px; margin: 5px 0;">
+        <button class="cp-btn">Copy result to clipboard</button>
+      </div>
+    </div>
+  </main>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.16/clipboard.min.js" integrity=""
+    crossorigin="anonymous"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.6/ace.js" integrity=""
+    crossorigin="anonymous"></script>
+  <script async src="js/javascript-stringify.min.js"></script>
+  <script>
+    var jsonEditor;
+    var jsEditor;
+    var addTrailingComma;
+
+    addTrailingComma = window.localStorage.getItem("addTrailingComma") === 'true';
+
+    document.getElementById('addTrailingComma').checked = addTrailingComma;
+
+    function replacer(value, indent, stringify) {
+      addTrailingComma = window.localStorage.getItem("addTrailingComma") === 'true';
+      if (addTrailingComma) {
+        if (value instanceof Array) {
+          return stringify(value).replace(/\n]$/g, ',\n]');
+        }
+
+        if (typeof value === 'object') {
+          return stringify(value).replace(/\n}$/g, ',\n}');
+        }
+      }
+
+      return stringify(value);
+    }
+
+    function rerender() {
+      var json = jsonEditor.getValue();
+      try {
+        var js = javascriptStringify(JSON.parse(json), replacer, 2);
+        jsEditor.setValue(js, -1);
+      } catch (err) {
+      }
+    }
+
+    function handleTrailingComma(el) {
+      if (el.checked) {
+        window.localStorage.setItem("addTrailingComma", true);
+      } else {
+        window.localStorage.setItem("addTrailingComma", false);
+      }
+      rerender();
+    }
+
+    window.onload = function () {
+      jsonEditor = ace.edit("json-editor");
+
+      jsonEditor.setOptions({
+        fontSize: "12pt"
+      });
+      jsonEditor.setTheme("ace/theme/textmate");
+      jsonEditor.getSession().setTabSize(2);
+      jsonEditor.getSession().setMode("ace/mode/json");
+      // jsonEditor.renderer.setShowGutter(false);
+      jsonEditor.setShowPrintMargin(false);
+      jsonEditor.setOption("highlightActiveLine", false);
+      jsonEditor.$blockScrolling = Infinity;
+
+      var count = jsonEditor.getSession().getLength();
+      jsonEditor.gotoLine(count, jsonEditor.getSession().getLine(count - 1).length);
+      jsonEditor.focus();
+
+      jsEditor = ace.edit("js-editor");
+      jsEditor.setOption("highlightActiveLine", false)
+      jsEditor.setTheme("ace/theme/textmate");
+      jsEditor.getSession().setTabSize(2);
+      jsEditor.getSession().setMode("ace/mode/text");
+      jsEditor.renderer.setShowGutter(false);
+      jsEditor.setShowPrintMargin(false);
+      jsEditor.$blockScrolling = Infinity;
+      jsEditor.setOptions({
+        fontSize: "12pt"
+      });
+
+      rerender();
+
+      new Clipboard('.cp-btn', {
+        text: function () {
+          return jsEditor.getValue();
+        }
+      });
+      jsonEditor.on('input', function () {
+        rerender();
+      });
+    }
+  </script>
+
+</html>
